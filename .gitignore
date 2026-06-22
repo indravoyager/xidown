@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data & Config files
+data/
+history.json
+*.txt
+!requirements.txt
+
+# Binaries
+bin/
+*.exe
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Logs
+*.log
+
+# Caches
+.cache/
+thumbs/
+preview_cache/
+
+# OS specific
+.DS_Store
+Thumbs.db
