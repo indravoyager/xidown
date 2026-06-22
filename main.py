@@ -182,6 +182,7 @@ class CyreneApp(BaseLayout):
             self.update_dashboard("ERROR: Tools missing! Check bin folder.", 0)
             self.btn_scan.configure(state="disabled")
             self.btn_download.configure(state="disabled")
+            self.after(1000, self.prompt_binaries_download)
         else: 
             if self.scan_data:
                 self.update_dashboard(f"Ready. {len(self.scan_data)} videos loaded.", 0)
@@ -1012,6 +1013,33 @@ class CyreneApp(BaseLayout):
                 callback_bye=lambda: (self.save_last_memory(), self.destroy())
             )
         else: self.exit_window.focus()
+
+    def prompt_binaries_download(self):
+        try:
+            from setup_binaries_popup import SetupBinariesPopup
+            SetupBinariesPopup(
+                self, 
+                on_complete=self.on_binaries_download_complete, 
+                on_cancel=self.on_binaries_download_cancel
+            )
+        except Exception as e:
+            print(f"Error opening setup binaries popup: {e}")
+
+    def on_binaries_download_complete(self):
+        self.tools = utils.check_setup()
+        if self.tools:
+            self.btn_scan.configure(state="normal")
+            self.btn_download.configure(state="normal")
+            self.update_dashboard("Ready. System set up successfully.", 0)
+            self.write_log("yt-dlp and ffmpeg successfully downloaded and set up.")
+        else:
+            self.update_dashboard("ERROR: Tools missing! Check bin folder.", 0)
+            self.btn_scan.configure(state="disabled")
+            self.btn_download.configure(state="disabled")
+
+    def on_binaries_download_cancel(self):
+        self.update_dashboard("Binary setup cancelled. Tools are missing.", 0)
+        self.write_log("Binary setup cancelled by user.")
 
 if __name__ == "__main__":
     app = CyreneApp()
