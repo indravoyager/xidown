@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xidown"
+version = "0.0.1"
+description = "A powerful, GUI-based video and audio downloading application built with Python"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "customtkinter",
+    "Pillow",
+    "requests",
+    "pyperclip",
+    "darkdetect",
+    "Flask",
+    "flask-cors"
+]
+
+[project.scripts]
+xidown = "xidown.app:main"
+
+[tool.setuptools.packages.find]
+include = ["xidown*"]
