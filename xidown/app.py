@@ -710,16 +710,21 @@ class CyreneApp(BaseLayout):
     def show_subs_popup(self, subs_dict, callback, title_context):
         self.curtain_frame.place_forget()
         from xidown.gui.dialogs.subtitle import SubtitlePopup
-        SubtitlePopup(self, subs_dict, on_confirm=callback, on_cancel=lambda: None, title_context=title_context)
+        self.subs_popup = SubtitlePopup(self, subs_dict, on_confirm=callback, on_cancel=lambda: None, title_context=title_context)
 
     def start_download(self):
         selected_items = [d for d in self.scan_data if d.get('selected', False)]
         if not selected_items: return self.update_dashboard("Select video first!", 0)
         
-        selected_items = [d for d in selected_items if not ("Done" in d.get('last_status', '') or "100%" in d.get('last_status', ''))]
-        if not selected_items: return self.update_dashboard("Selected items already downloaded.", 0)
+        valid_items = []
+        for d in selected_items:
+            st = str(d.get('last_status') or '')
+            if "Done" not in st and "100%" not in st:
+                valid_items.append(d)
+                
+        if not valid_items: return self.update_dashboard("Selected items already downloaded.", 0)
         
-        self.check_subtitle_then_continue(selected_items, lambda subs: self.continue_download(selected_items, subs))
+        self.check_subtitle_then_continue(valid_items, lambda subs: self.continue_download(valid_items, subs))
 
     def continue_download(self, selected_items, sub_langs):
         self.stop_event_download.clear()
@@ -752,7 +757,7 @@ class CyreneApp(BaseLayout):
 
     def action_download_one_item(self, widget_target):
         item_data = widget_target.data
-        status = item_data.get('last_status', '')
+        status = str(item_data.get('last_status') or '')
         if "Done" in status or "100%" in status:
             self.update_dashboard("Item already downloaded.", 0)
             return
@@ -1023,7 +1028,7 @@ class CyreneApp(BaseLayout):
     def prompt_binaries_download(self):
         try:
             from xidown.gui.dialogs.setup import SetupBinariesPopup
-            SetupBinariesPopup(
+            self.setup_popup = SetupBinariesPopup(
                 self, 
                 on_complete=self.on_binaries_download_complete, 
                 on_cancel=self.on_binaries_download_cancel
