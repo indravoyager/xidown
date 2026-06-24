@@ -87,7 +87,7 @@ def get_icon_path():
     Retrieve the safe absolute path to assets/favicon.ico.
     """
     if getattr(sys, 'frozen', False):
-        base_path = os.path.dirname(sys.executable)
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
     else:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         package_dir = os.path.dirname(current_dir)

@@ -391,7 +391,11 @@ class BaseLayout(ctk.CTk):
         self.deiconify() 
 
     def load_icons(self):
-        icon_dir = os.path.join(BASE_DIR, "assets", "icons")
+        if getattr(sys, 'frozen', False):
+            icon_dir = os.path.join(getattr(sys, '_MEIPASS', BASE_DIR), "assets", "icons")
+        else:
+            icon_dir = os.path.join(BASE_DIR, "assets", "icons")
+            
         def get_icon(name, size=20):
             path = os.path.join(icon_dir, name)
             if os.path.exists(path):
