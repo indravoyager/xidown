@@ -118,6 +118,7 @@ class CyreneApp(BaseLayout):
         self.show_loading_screen()
 
         # --- Init Logic ---
+        utils.create_shortcut_if_first_run()
         self.tools = utils.check_setup()
         self.settings_window = None 
         self.exit_window = None 
@@ -173,7 +174,6 @@ class CyreneApp(BaseLayout):
             self.update_dashboard("ERROR: Tools missing! Check bin folder.", 0)
             self.btn_scan.configure(state="disabled")
             self.btn_download.configure(state="disabled")
-            self.after(1000, self.prompt_binaries_download)
         else: 
             if self.scan_data:
                 self.update_dashboard(f"Ready. {len(self.scan_data)} videos loaded.", 0)
@@ -242,6 +242,8 @@ class CyreneApp(BaseLayout):
                 splash.destroy()
                 self.attributes("-alpha", 1.0) 
                 self.install_my_icon(self)
+                if not self.tools:
+                    self.after(200, self.prompt_binaries_download)
 
         splash.after(200, lambda: run_loading(0))
     
@@ -734,7 +736,7 @@ class CyreneApp(BaseLayout):
             item['last_status'] = "Waiting..."
             self.after(0, lambda u=item['url_dl']: self.send_status_to_card(u, "Waiting...", 0))
 
-        chosen_format = "mp3" if "🎵" in self.var_format.get() else "mp4"
+        chosen_format = "mp3" if "Audio" in self.var_format.get() or "🎵" in self.var_format.get() else "mp4"
         config = settings.load_config()
         
         thread_count = config.get("threads", 2)       
@@ -769,7 +771,7 @@ class CyreneApp(BaseLayout):
         
         single_list = [item_data]
         
-        chosen_format = "mp3" if "🎵" in self.var_format.get() else "mp4"
+        chosen_format = "mp3" if "Audio" in self.var_format.get() or "🎵" in self.var_format.get() else "mp4"
         config = settings.load_config()
         thread_count = config.get("threads", 2)       
         parallel_count = 1 
@@ -1010,7 +1012,7 @@ class CyreneApp(BaseLayout):
             self.var_semua.set(semua_aktif)
         
     def action_change_size_display(self, val):
-        mode = "mp3" if "🎵" in val else "mp4"
+        mode = "mp3" if "Audio" in val or "🎵" in val else "mp4"
         for w in self.widget_list: w.set_size_display(mode)
         
     def action_smart_paste(self):

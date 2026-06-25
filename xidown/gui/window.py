@@ -210,7 +210,7 @@ class ThumbnailCard(ctk.CTkFrame):
         self.lbl_title.configure(text=display_text)
         if self.data.get('locked', False): self.configure(border_color="#db2777", border_width=1); self.lbl_title.configure(text_color="#db2777")
         else: self.configure(border_color="#2c2c2c", border_width=1); self.lbl_title.configure(text_color="#f0f0f0")
-        self.set_size_display("mp3" if "🎵" in self.lbl_info.cget("text") else "mp4")
+        self.set_size_display("mp3" if "Audio" in self.lbl_info.cget("text") or "🎵" in self.lbl_info.cget("text") else "mp4")
 
     def set_download_status(self, text, color="#aaaaaa"):
         self.lbl_status_row.configure(text=text, text_color=color)

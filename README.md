@@ -1,125 +1,101 @@
 # xidown
 
-xidown is a powerful, cross-platform GUI-based video and audio downloading application built with Python. Designed with an aesthetic dark-themed UI (CustomTkinter), xidown enables users to effortlessly scan, preview, and download media using `yt-dlp` and `ffmpeg`.
+xidown is a powerful, cross-platform GUI-based video and audio downloader built with Python. Designed with a premium, dark-themed CustomTkinter UI, xidown lets you effortlessly scan, queue, and download media using `yt-dlp` and `ffmpeg`.
 
 ![xidown Interface](xidownv0.2513.png)
 
-## Features
+---
 
-- **Modern & Premium UI:** Built with CustomTkinter for a sleek, dark-themed experience with fluid animations and crisp, clean layouts.
-- **Interactive Video Queue (Drag & Drop):** Seamlessly reorder scanned videos in your download list by simply dragging and dropping the video cards. 
-- **Advanced Context Menus:** Right-click on any video card to access quick actions:
-  - **Pin/Unpin:** Lock a video to the top of your list so it doesn't get cleared accidentally.
-  - **Test Play (15s):** Quickly preview the video directly from the UI before fully downloading it.
-  - **Download Item:** Force download a specific item instantly without waiting for the batch queue.
-  - **Delete:** Remove a specific video from the queue.
-- **Intelligent Playlist Guard:** Automatically detects when you paste a massive playlist and prompts a confirmation dialog to prevent accidental UI overloads.
-- **Cross-Platform Support:** Works seamlessly on Windows, Linux, and macOS (with native macOS right-click bindings).
-- **Batch Processing & Multithreading:** Scan playlists or multiple links, and download them simultaneously using custom thread and parallel job limits.
-- **Browser Extension Integration:** Built-in Maribel Server (Flask-based) runs silently on port 3000 to instantly catch download links from the companion browser extension.
-- **Smart Cookie Management:** Seamlessly import Netscape-formatted cookies per domain (e.g., YouTube, Bilibili) to bypass age-restrictions and login walls. Includes API spoofing to bypass YouTube's strict JS runtime requirements.
-- **Subtitle Selection:** Choose specific subtitle languages (native or auto-generated) before downloading.
-- **Smart Caching Engine:** Automatically caches video thumbnails and includes a built-in "Cleaner Manager" to easily wipe junk or broken partial downloads in one click.
-- **History Tracking & Session Recovery:** Easily undo/redo actions in your scan list, and remember previously scanned items across sessions.
+## What's New (v0.2515 Optimization & Fixes)
+
+- **Instant Startup & Portable Release:** Compiled as a portable directory instead of a single packed executable. This dramatically speeds up application launch to instantaneous, improves runtime stability, and ensures cleaner file organization.
+- **Instant Desktop Shortcut:** Automatically creates a beautiful desktop shortcut with the custom xidown icon on the very first run of the application—completely hands-free without needing any manual scripts.
+- **Perfect Setup Synchronization:** Fixed a race condition where the Setup Binaries download window would open off-screen or minimized. It now centers beautifully on top of the main window after the splash screen finishes loading.
+- **Flawless Audio Extraction & UI Styling:** Fixed a legacy emoji-check bug that caused the "Audio" toggle to still download video. Audio extraction now works perfectly, and the UI dynamically updates to a beautiful pink audio card layout.
+
+---
+
+## Key Features
+
+- **Modern & Premium UI:** Built with CustomTkinter featuring custom color palettes, fluid animations, and a high-contrast dark aesthetic.
+- **Interactive Queue (Drag & Drop):** Easily reorder scanned videos by dragging and dropping the cards.
+- **Advanced Context Menus:** Right-click cards to **Pin/Unpin** items, **Test Play (15s)** to preview, **Download Item** instantly, or **Delete** from queue.
+- **Intelligent Playlist Guard:** Prompts a confirmation dialog when pasting large playlists to prevent UI overload.
+- **Browser Extension Integration:** Built-in Flask server (Maribel Server) runs silently on port 3000 to catch download links instantly from the companion browser extension.
+- **Smart Cookie Management:** Easily import Netscape cookies per domain to bypass age restrictions and login walls, with built-in YouTube API spoofing.
+- **Caching & Cleaner Manager:** Caches thumbnails and includes a one-click manager to clear temporary files and broken downloads.
+- **History & Session Recovery:** Undo/redo actions in the scan list and recover previously scanned sessions on startup.
+
+---
 
 ## Prerequisites
 
 - Python 3.8+
-- **`ffmpeg` and `yt-dlp`:** The application requires these dependencies to scan and download media. Xidown detects system PATH executables automatically. If missing, setup behaves as follows per OS:
-  - **Windows (Automatic):** The application will prompt to download and place `yt-dlp.exe` and `ffmpeg.exe` automatically in the local `bin/` directory.
-  - **Linux (Manual):** Install via your package manager, e.g., for Debian/Ubuntu:
-    ```bash
-    sudo apt update && sudo apt install ffmpeg yt-dlp
-    ```
-  - **macOS (Manual):** Install via Homebrew:
-    ```bash
-    brew install ffmpeg yt-dlp
-    ```
-
-## Installation & Setup
-
-You can either download the pre-built standalone binaries or set up the project from source.
-
-### Option 1: Standalone Release (Recommended for Users)
-
-Download the latest pre-compiled package for your OS (Windows, Linux, macOS) from the [Releases](https://github.com/indravoyager/xidown/releases) page.
-
-1. Download and extract the `.zip` file for your platform.
-2. Run the executable:
-   - **Windows:** Double-click `xidown.exe` or run `xidown.exe` in CMD/PowerShell. *(Note: On Windows, xidown will automatically prompt to download and place `ffmpeg.exe` and `yt-dlp.exe` in the local `bin/` directory if they are not in your system PATH).*
-   - **Linux / macOS:** Open a terminal, make it executable (`chmod +x xidown`), and run `./xidown`. *(Note: You must have `ffmpeg` and `yt-dlp` installed on your system).*
+- **ffmpeg and yt-dlp:** Required for scanning and downloading.
+  - **Windows:** Automatically prompted to download to the local `bin/` folder on first run if missing from system PATH.
+  - **Linux / macOS:** Can be installed manually via package managers (e.g., `sudo apt update && sudo apt install ffmpeg yt-dlp` or `brew install ffmpeg yt-dlp`).
 
 ---
 
-### Option 2: Installation from Source (For Developers)
+## Installation & Setup
 
-xidown is structured as a standard Python package. It is recommended to install it inside a Python virtual environment to keep dependencies isolated.
+### Option 1: Standalone Release (Recommended)
+Download the pre-compiled package for your OS from the [Releases](https://github.com/indravoyager/xidown/releases) page.
+1. Download and extract the `.zip` file.
+2. Run the application:
+   - **Windows:** Double-click `xidown.exe` inside the extracted folder. A desktop shortcut with the custom xidown icon will be automatically created on the first run!
+   - **Linux:** Open a terminal in the extracted folder, make it executable, and run:
+     ```bash
+     chmod +x xidown
+     ./xidown
+     ```
+   - **macOS:** Simply double-click **`xidown.app`** inside the extracted folder (or run `open xidown.app` in your terminal).
 
-1. **Clone the repository:**
+### Option 2: Run from Source (For Developers)
+1. **Clone the repo:**
    ```bash
    git clone https://github.com/indravoyager/xidown.git
    cd xidown
    ```
-
-2. **Create a Python virtual environment:**
+2. **Set up virtual environment:**
    ```bash
    python -m venv venv
+   # Activate:
+   source venv/bin/activate  # Linux/macOS
+   venv\Scripts\activate     # Windows (CMD)
    ```
-
-3. **Activate the virtual environment:**
-   - **Windows (Command Prompt):**
-     ```cmd
-     venv\Scripts\activate.bat
-     ```
-   - **Windows (PowerShell):**
-     ```powershell
-     venv\Scripts\Activate.ps1
-     ```
-   - **Linux / macOS:**
-     ```bash
-     source venv/bin/activate
-     ```
-
-4. **Install the package in editable mode:**
+3. **Install in editable mode:**
    ```bash
    pip install -e .
    ```
-   *(This automatically installs core dependencies like `customtkinter`, `Flask`, `flask-cors`, and `Pillow` inside the active environment).*
+4. **Run the application:**
+   Once installed, you can launch the app from any directory:
+   ```bash
+   xidown
+   ```
+   Or run it directly as a module from the project root:
+   ```bash
+   python -m xidown
+   ```
+
+---
 
 ## Browser Extension Setup
+To catch download links directly from your browser:
+1. Clone or download the extension: [xidown_ext](https://github.com/indravoyager/xidown_ext)
+2. Open your Chromium browser and go to `chrome://extensions/`.
+3. Enable **Developer mode** (top-right toggle).
+4. Click **"Load unpacked"** and select the extension folder.
+5. The extension will now automatically send links to xidown whenever the app is running!
 
-To enable seamless download link catching directly from your browser, you will need the companion browser extension:
-
-1. Download or clone the extension from its repository: [xidown_ext](https://github.com/indravoyager/xidown_ext)
-2. Open your Chromium-based browser (Chrome, Edge, Brave).
-3. Navigate to the extensions page: `chrome://extensions/` or `edge://extensions/`.
-4. Enable **Developer mode** in the top right corner.
-5. Click **"Load unpacked"** and select the folder where you extracted the `xidown_ext` files.
-6. Once loaded, the extension will automatically send detected video links to xidown's Maribel server (port 3000) whenever xidown is running.
-
-## Usage
-
-Since xidown is installed as a package, you can run it from **any directory** in your terminal:
-
-```bash
-xidown
-```
-
-Alternatively, for development testing, you can run it directly from the project root:
-```bash
-python -m xidown
-```
-
-- **Scan:** Paste your video link(s) and click **Scan** to retrieve metadata.
-- **Download:** Select the desired format (Video/Audio) and click **Download**.
-- **Settings:** Configure threads, proxy, download quality, and default save paths from the settings panel.
+---
 
 ## Project Structure
 
 ```text
 xidown/
 ├── assets/              # Icons and image resources
-├── bin/                 # Auto-downloaded yt-dlp and ffmpeg executables (if missing from PATH)
+├── bin/                 # Auto-downloaded yt-dlp and ffmpeg executables
 ├── data/                # Database, caches, and configuration memory
 ├── xidown/              # Core Python package
 │   ├── app.py           # Main application entry point & Flask Server
@@ -129,10 +105,7 @@ xidown/
 └── README.md
 ```
 
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+---
 
 ## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](LICENSE)

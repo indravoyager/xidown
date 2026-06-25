@@ -39,7 +39,7 @@ def run_build():
         "--clean",
         "--noconfirm",
         "--name=xidown",
-        "--onefile",
+        "--onedir",
         "--windowed",
         f"--add-data={assets_dir}{sep}assets",
         f"--add-data={ctk_dir}{sep}customtkinter",
@@ -96,33 +96,41 @@ def package_release(project_root):
     
     print(f"[Build] Packaging application for {os_name} ({arch})...")
     
-    # Target executable name
-    exec_name = "xidown.exe" if os_system == "windows" else "xidown"
-    exec_path = os.path.join(dist_dir, exec_name)
+    # Target folder path
+    app_folder_name = "xidown.app" if os_name == "macos" else "xidown"
+    app_folder_path = os.path.join(dist_dir, app_folder_name)
     
-    if not os.path.exists(exec_path):
-        # On macOS with --windowed, PyInstaller might generate dist/xidown.app folder instead of onefile executable
-        mac_app_path = os.path.join(dist_dir, "xidown.app")
-        if os_name == "macos" and os.path.exists(mac_app_path):
-            print(f"[Build] macOS App Bundle found at: {mac_app_path}")
-            # Zip the .app directory
-            zip_directory(mac_app_path, zip_path)
-            print(f"[Build] Packaged successfully to: {zip_path}")
-            return
-        else:
-            print(f"[Build] Error: Compiled executable not found at: {exec_path}")
-            sys.exit(1)
+    # Fallback to 'xidown' on macos if '.app' is not generated
+    if not os.path.exists(app_folder_path) and os_name == "macos":
+        app_folder_path = os.path.join(dist_dir, "xidown")
+        
+    if not os.path.exists(app_folder_path):
+        print(f"[Build] Error: Compiled output folder not found at: {app_folder_path}")
+        sys.exit(1)
+        
+    # Copy README.md into the folder before zipping
+    readme_path = os.path.join(project_root, "README.md")
+    if os.path.exists(readme_path):
+        try:
+            shutil.copy(readme_path, os.path.join(app_folder_path, "README.md"))
+            print("[Build] Copied README.md into the output folder.")
+        except Exception as e:
+            print(f"[Build] Warning: Failed to copy README.md: {e}")
             
-    # Zip the single executable
+
+    # Copy LICENSE into the folder before zipping
+    license_path = os.path.join(project_root, "LICENSE")
+    if os.path.exists(license_path):
+        try:
+            shutil.copy(license_path, os.path.join(app_folder_path, "LICENSE"))
+            print("[Build] Copied LICENSE into the output folder.")
+        except Exception as e:
+            print(f"[Build] Warning: Failed to copy LICENSE: {e}")
+            
+    # Zip the entire folder
     try:
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.write(exec_path, exec_name)
-            
-            # Optional: Add README if it exists
-            readme_path = os.path.join(project_root, "README.md")
-            if os.path.exists(readme_path):
-                zipf.write(readme_path, "README.md")
-                
+        print(f"[Build] Zipping folder: {app_folder_path} to {zip_path}...")
+        zip_directory(app_folder_path, zip_path)
         print(f"[Build] Packaged successfully to: {zip_path}")
         print(f"[Build] Package size: {os.path.getsize(zip_path) / (1024*1024):.2f} MB")
     except Exception as e:
