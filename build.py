@@ -39,7 +39,7 @@ def run_build():
         "--clean",
         "--noconfirm",
         "--name=xidown",
-        "--onedir",
+        "--onefile",
         "--windowed",
         f"--add-data={assets_dir}{sep}assets",
         f"--add-data={ctk_dir}{sep}customtkinter",
@@ -96,38 +96,55 @@ def package_release(project_root):
     
     print(f"[Build] Packaging application for {os_name} ({arch})...")
     
-    # Target folder path
-    app_folder_name = "xidown.app" if os_name == "macos" else "xidown"
-    app_folder_path = os.path.join(dist_dir, app_folder_name)
+    # In --onefile mode, we create a temporary directory named 'xidown' inside 'dist' to bundle everything
+    # This ensures that when the zip is extracted, it extracts to a clean 'xidown/' folder.
+    app_folder_path = os.path.join(dist_dir, "xidown")
+    if os.path.exists(app_folder_path):
+        try:
+            shutil.rmtree(app_folder_path)
+        except Exception:
+            pass
+    os.makedirs(app_folder_path, exist_ok=True)
     
-    # Fallback to 'xidown' on macos if '.app' is not generated
-    if not os.path.exists(app_folder_path) and os_name == "macos":
-        app_folder_path = os.path.join(dist_dir, "xidown")
-        
-    if not os.path.exists(app_folder_path):
-        print(f"[Build] Error: Compiled output folder not found at: {app_folder_path}")
-        sys.exit(1)
-        
-    # Copy README.md into the folder before zipping
+    # 1. Copy the compiled executable/bundle into our temporary release folder
+    if os_name == "macos":
+        app_bundle = os.path.join(dist_dir, "xidown.app")
+        if os.path.exists(app_bundle):
+            shutil.copytree(app_bundle, os.path.join(app_folder_path, "xidown.app"))
+            print("[Build] Copied xidown.app bundle into release folder.")
+        else:
+            # Fallback to single binary if no bundle exists
+            shutil.copy(os.path.join(dist_dir, "xidown"), os.path.join(app_folder_path, "xidown"))
+            print("[Build] Copied xidown binary into release folder.")
+    else:
+        exe_name = "xidown.exe" if os_name == "windows" else "xidown"
+        exe_source = os.path.join(dist_dir, exe_name)
+        if os.path.exists(exe_source):
+            shutil.copy(exe_source, os.path.join(app_folder_path, exe_name))
+            print(f"[Build] Copied {exe_name} into release folder.")
+        else:
+            print(f"[Build] Error: Compiled executable not found at: {exe_source}")
+            sys.exit(1)
+            
+    # 2. Copy README.md into the release folder before zipping
     readme_path = os.path.join(project_root, "README.md")
     if os.path.exists(readme_path):
         try:
             shutil.copy(readme_path, os.path.join(app_folder_path, "README.md"))
-            print("[Build] Copied README.md into the output folder.")
+            print("[Build] Copied README.md into release folder.")
         except Exception as e:
             print(f"[Build] Warning: Failed to copy README.md: {e}")
             
-
-    # Copy LICENSE into the folder before zipping
+    # 3. Copy LICENSE into the release folder before zipping
     license_path = os.path.join(project_root, "LICENSE")
     if os.path.exists(license_path):
         try:
             shutil.copy(license_path, os.path.join(app_folder_path, "LICENSE"))
-            print("[Build] Copied LICENSE into the output folder.")
+            print("[Build] Copied LICENSE into release folder.")
         except Exception as e:
             print(f"[Build] Warning: Failed to copy LICENSE: {e}")
             
-    # Zip the entire folder
+    # 4. Zip the entire folder
     try:
         print(f"[Build] Zipping folder: {app_folder_path} to {zip_path}...")
         zip_directory(app_folder_path, zip_path)
@@ -136,6 +153,13 @@ def package_release(project_root):
     except Exception as e:
         print(f"[Build] Packaging failed: {e}")
         sys.exit(1)
+    finally:
+        # 5. Clean up our temporary release folder
+        if os.path.exists(app_folder_path):
+            try:
+                shutil.rmtree(app_folder_path)
+            except Exception as e:
+                print(f"[Build] Warning: Failed to clean up temporary release folder: {e}")
 
 def zip_directory(folder_path, zip_path):
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
