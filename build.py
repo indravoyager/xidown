@@ -100,9 +100,9 @@ def package_release(project_root):
     
     print(f"[Build] Packaging application for {os_name} ({arch})...")
     
-    # In --onefile mode, we create a temporary directory named 'xidown' inside 'dist' to bundle everything
-    # This ensures that when the zip is extracted, it extracts to a clean 'xidown/' folder.
-    app_folder_path = os.path.join(dist_dir, "xidown")
+    # In --onefile mode, we create a temporary directory named 'xidown_pkg_temp' inside 'dist' to bundle everything.
+    # This avoids any naming conflicts with the compiled binary 'xidown' on Linux.
+    app_folder_path = os.path.join(dist_dir, "xidown_pkg_temp")
     if os.path.exists(app_folder_path):
         try:
             shutil.rmtree(app_folder_path)
@@ -170,9 +170,9 @@ def zip_directory(folder_path, zip_path):
         for root, dirs, files in os.walk(folder_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                # Maintain relative path inside zip
-                rel_path = os.path.relpath(file_path, os.path.dirname(folder_path))
-                zipf.write(file_path, rel_path)
+                # Maintain relative path inside zip, prefixing with 'xidown/'
+                rel_path = os.path.relpath(file_path, folder_path)
+                zipf.write(file_path, os.path.join("xidown", rel_path))
 
 if __name__ == "__main__":
     run_build()
