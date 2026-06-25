@@ -33,17 +33,13 @@ def run_build():
     project_root = os.path.dirname(os.path.abspath(__file__))
     assets_dir = os.path.join(project_root, "assets")
     
-    # Use --onefile for Windows and Linux, but --onedir for macOS (as macOS windowed app bundles must be directories)
-    is_macos = platform.system() == "Darwin"
-    mode_flag = "--onedir" if is_macos else "--onefile"
-    
     # Build command
     cmd = [
         "pyinstaller",
         "--clean",
         "--noconfirm",
         "--name=xidown",
-        mode_flag,
+        "--onedir",
         "--windowed",
         f"--add-data={assets_dir}{sep}assets",
         f"--add-data={ctk_dir}{sep}customtkinter",
@@ -100,8 +96,8 @@ def package_release(project_root):
     
     print(f"[Build] Packaging application for {os_name} ({arch})...")
     
-    # In --onefile mode, we create a temporary directory named 'xidown_pkg_temp' inside 'dist' to bundle everything.
-    # This avoids any naming conflicts with the compiled binary 'xidown' on Linux.
+    # In --onedir mode, we create a temporary directory named 'xidown_pkg_temp' inside 'dist' to bundle everything.
+    # This avoids any naming conflicts with the compiled output directory.
     app_folder_path = os.path.join(dist_dir, "xidown_pkg_temp")
     if os.path.exists(app_folder_path):
         try:
@@ -110,24 +106,35 @@ def package_release(project_root):
             pass
     os.makedirs(app_folder_path, exist_ok=True)
     
-    # 1. Copy the compiled executable/bundle into our temporary release folder
+    # 1. Copy the compiled output into our temporary release folder
     if os_name == "macos":
         app_bundle = os.path.join(dist_dir, "xidown.app")
         if os.path.exists(app_bundle):
             shutil.copytree(app_bundle, os.path.join(app_folder_path, "xidown.app"))
             print("[Build] Copied xidown.app bundle into release folder.")
         else:
-            # Fallback to single binary if no bundle exists
-            shutil.copy(os.path.join(dist_dir, "xidown"), os.path.join(app_folder_path, "xidown"))
-            print("[Build] Copied xidown binary into release folder.")
+            # Fallback to binary directory if no bundle exists
+            src_dir = os.path.join(dist_dir, "xidown")
+            if os.path.exists(src_dir):
+                shutil.copytree(src_dir, os.path.join(app_folder_path, "xidown"))
+                print("[Build] Copied xidown binary directory into release folder.")
+            else:
+                print("[Build] Error: Compiled output not found.")
+                sys.exit(1)
     else:
-        exe_name = "xidown.exe" if os_name == "windows" else "xidown"
-        exe_source = os.path.join(dist_dir, exe_name)
-        if os.path.exists(exe_source):
-            shutil.copy(exe_source, os.path.join(app_folder_path, exe_name))
-            print(f"[Build] Copied {exe_name} into release folder.")
+        # For Windows/Linux, copy all contents from dist/xidown/ into dist/xidown_pkg_temp/
+        src_dir = os.path.join(dist_dir, "xidown")
+        if os.path.exists(src_dir):
+            for item in os.listdir(src_dir):
+                s = os.path.join(src_dir, item)
+                d = os.path.join(app_folder_path, item)
+                if os.path.isdir(s):
+                    shutil.copytree(s, d)
+                else:
+                    shutil.copy2(s, d)
+            print("[Build] Copied all compiled files and folders into release folder.")
         else:
-            print(f"[Build] Error: Compiled executable not found at: {exe_source}")
+            print(f"[Build] Error: Compiled directory not found at: {src_dir}")
             sys.exit(1)
             
     # 2. Copy README.md into the release folder before zipping
