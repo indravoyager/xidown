@@ -212,7 +212,11 @@ def get_icon_path() -> Optional[str]:
     str
         A string path refers to the image, or None if cannot be found.
     """
-    base_path = get_rootdir(True)
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        base_path = Path(sys._MEIPASS)
+    else:
+        base_path = get_rootdir(True)
+        
     favicon_path = base_path.joinpath(*FAVICON_PATH.split('/'))
 
     if favicon_path.is_file():
