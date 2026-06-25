@@ -33,13 +33,17 @@ def run_build():
     project_root = os.path.dirname(os.path.abspath(__file__))
     assets_dir = os.path.join(project_root, "assets")
     
+    # Use --onefile for Windows and Linux, but --onedir for macOS (as macOS windowed app bundles must be directories)
+    is_macos = platform.system() == "Darwin"
+    mode_flag = "--onedir" if is_macos else "--onefile"
+    
     # Build command
     cmd = [
         "pyinstaller",
         "--clean",
         "--noconfirm",
         "--name=xidown",
-        "--onefile",
+        mode_flag,
         "--windowed",
         f"--add-data={assets_dir}{sep}assets",
         f"--add-data={ctk_dir}{sep}customtkinter",
