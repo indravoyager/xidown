@@ -49,8 +49,9 @@ DEFAULT_POPEN_KWARGS = {
 # Maximum chunk size for downloading FFmpeg
 MAX_CHUNK_SIZE = 64 * 1024  # 64 KB
 
-# FFmpeg download URL (via gyan.dev)
-FFMPEG_DOWNLOAD_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+# FFmpeg download URL (via GitHub releases)
+# Using gyan.dev was really slow and is likely to have download speed limitation
+FFMPEG_DOWNLOAD_URL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
 
 # yt-dlp binary (EXE) download URL (via GitHub releases)
 YT_DLP_DOWNLOAD_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
