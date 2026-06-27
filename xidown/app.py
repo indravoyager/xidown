@@ -40,11 +40,16 @@ from xidown.core import scanner
 from xidown.core.version import WINDOW_TITLE, APP_NAME
 
 # CONSTANTS & SETUP
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(os.path.expanduser("~"), "Videos", "xidown")
 if not os.path.exists(DATA_DIR): os.makedirs(DATA_DIR)
 
 THUMB_DIR = os.path.join(DATA_DIR, "thumbs")
-if not os.path.exists(THUMB_DIR): os.makedirs(THUMB_DIR)
+if not os.path.exists(THUMB_DIR):
+    os.makedirs(THUMB_DIR)
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetFileAttributesW(str(THUMB_DIR), 2) # 2 = Hidden
+    except: pass
 
 HISTORY_FILE = os.path.join(DATA_DIR, "history.json")
 
@@ -118,7 +123,7 @@ class CyreneApp(BaseLayout):
         self.show_loading_screen()
 
         # --- Init Logic ---
-        utils.create_shortcut_if_first_run()
+
         self.tools = utils.check_setup()
         self.settings_window = None 
         self.exit_window = None 

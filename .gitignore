@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Data & Config files
-data/
+xidown_data/
 history.json
 *.txt
 !requirements.txt
@@ -41,7 +41,8 @@ dist/
 releases/
 *.spec
 
-# Nuitka build artifacts
+# Nuitka & Installer build artifacts
 *.build/
 *.dist/
 *.onefile-build/
+*.iss

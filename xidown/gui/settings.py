@@ -21,7 +21,7 @@ else:
     package_dir = os.path.dirname(current_dir)                   # .../xidown (Package)
     BASE_DIR = os.path.dirname(package_dir)                      # .../xidown (ROOT)
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(os.path.expanduser("~"), "Videos", "xidown")
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
@@ -388,7 +388,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.use_default_var = ctk.BooleanVar(value=self.config.get("use_default_path", True))
         
         # [MARIBEL FIX] Adjusted label display so the user knows it goes to data/ folder
-        path_def = f".../data/{datetime.now().year}_{datetime.now().month:02d}"
+        path_def = f".../Videos/xidown/{datetime.now().year}_{datetime.now().month:02d}"
         
         self.chk_default = ctk.CTkCheckBox(
             self.page_storage, text=f"Default ({path_def})", variable=self.use_default_var, 

@@ -96,7 +96,19 @@ def package_release(project_root):
     else:
         arch = raw_arch
         
-    zip_name = f"xidown-{os_name}-{arch}.zip"
+    try:
+        from xidown.core.version import APP_VER
+        version = APP_VER.replace("v.", "v") # e.g. "v0.2517"
+    except ImportError:
+        version = "v0.0.0"
+
+    # Naming convention: xidown-[version]-[os]-[arch][-portable].zip
+    # We add "-portable" for Windows to distinguish it from the setup.exe
+    if os_name == "windows":
+        zip_name = f"xidown-{version}-{os_name}-{arch}-portable.zip"
+    else:
+        zip_name = f"xidown-{version}-{os_name}-{arch}.zip"
+        
     zip_path = os.path.join(releases_dir, zip_name)
     
     print(f"[Build] Packaging application for {os_name} ({arch})...")
@@ -107,11 +119,14 @@ def package_release(project_root):
     
     # Fallback: check other possible output names
     if not os.path.exists(nuitka_output):
-        # Try finding any .dist folder
-        for item in os.listdir(dist_dir):
-            if item.endswith(".dist") and os.path.isdir(os.path.join(dist_dir, item)):
-                nuitka_output = os.path.join(dist_dir, item)
-                break
+        # On macOS with app bundle, it might just be .app
+        if os_name == "macos" and os.path.exists(os.path.join(dist_dir, "xidown.app")):
+            nuitka_output = os.path.join(dist_dir, "xidown.app")
+        else:
+            for item in os.listdir(dist_dir):
+                if (item.endswith(".dist") or item.endswith(".app")) and os.path.isdir(os.path.join(dist_dir, item)):
+                    nuitka_output = os.path.join(dist_dir, item)
+                    break
     
     if not os.path.exists(nuitka_output):
         print(f"[Build] Error: Nuitka output directory not found. Expected: {nuitka_output}")
@@ -130,23 +145,12 @@ def package_release(project_root):
     os.makedirs(app_folder_path, exist_ok=True)
     
     # 1. Copy the compiled output into our temporary release folder
-    if os_name == "macos":
-        app_bundle = os.path.join(dist_dir, "xidown.app")
-        if os.path.exists(app_bundle):
-            shutil.copytree(app_bundle, os.path.join(app_folder_path, "xidown.app"))
-            print("[Build] Copied xidown.app bundle into release folder.")
-        else:
-            # Fallback to Nuitka output directory
-            for item in os.listdir(nuitka_output):
-                s = os.path.join(nuitka_output, item)
-                d = os.path.join(app_folder_path, item)
-                if os.path.isdir(s):
-                    shutil.copytree(s, d)
-                else:
-                    shutil.copy2(s, d)
-            print("[Build] Copied Nuitka output into release folder.")
+    if os_name == "macos" and nuitka_output.endswith(".app"):
+        # If Nuitka output is directly the .app bundle
+        shutil.copytree(nuitka_output, os.path.join(app_folder_path, "xidown.app"))
+        print(f"[Build] Copied {nuitka_output} bundle into release folder.")
     else:
-        # For Windows/Linux, copy all contents from Nuitka output
+        # For Windows/Linux or if output is a .dist folder, copy all contents
         for item in os.listdir(nuitka_output):
             s = os.path.join(nuitka_output, item)
             d = os.path.join(app_folder_path, item)
@@ -177,7 +181,21 @@ def package_release(project_root):
     # 4. Zip the entire folder
     try:
         print(f"[Build] Zipping folder: {app_folder_path} to {zip_path}...")
-        zip_directory(app_folder_path, zip_path)
+        
+        # Create portable.txt ONLY for the zip package (portable version)
+        portable_txt_path = os.path.join(app_folder_path, "portable.txt")
+        try:
+            with open(portable_txt_path, "w") as f:
+                f.write("This file tells xidown to run in portable mode and save data in this folder.")
+        except: pass
+        
+        safe_zip_directory(app_folder_path, zip_path)
+        
+        # Remove portable.txt so the Inno Setup installer (which runs next) doesn't include it
+        if os.path.exists(portable_txt_path):
+            try: os.remove(portable_txt_path)
+            except: pass
+            
         print(f"[Build] Packaged successfully to: {zip_path}")
         print(f"[Build] Package size: {os.path.getsize(zip_path) / (1024*1024):.2f} MB")
         
@@ -208,15 +226,16 @@ def build_inno_setup(app_folder_path, releases_dir, project_root, arch):
 AppName=xidown
 AppVersion={version}
 AppPublisher=indravoyager
-DefaultDirName={{autopf}}\\xidown
+DefaultDirName={{localappdata}}\\Programs\\xidown
 DefaultGroupName=xidown
 OutputDir={releases_dir}
-OutputBaseFilename=xidown-windows-{arch}-setup
+OutputBaseFilename=xidown-v{version}-windows-{arch}-setup
 Compression=lzma2
 SolidCompression=yes
 SetupIconFile={app_folder_path}\\assets\\favicon.ico
+WizardImageFile={app_folder_path}\\assets\\installer_side.bmp
 UninstallDisplayIcon={{app}}\\xidown.exe
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
 
 [Tasks]
 Name: "desktopicon"; Description: "{{cm:CreateDesktopIcon}}"; GroupDescription: "{{cm:AdditionalIcons}}"; Flags: unchecked
@@ -259,13 +278,29 @@ Filename: "{{app}}\\xidown.exe"; Description: "{{cm:LaunchProgram,xidown}}"; Fla
         print("[Build] Inno Setup compiler not found. Skipping installer creation.")
 
 def zip_directory(folder_path, zip_path):
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                # Maintain relative path inside zip, prefixing with 'xidown/'
-                rel_path = os.path.relpath(file_path, folder_path)
-                zipf.write(file_path, os.path.join("xidown", rel_path))
+    # Using shutil.make_archive handles permissions and symlinks much better than standard zipfile module
+    # We create the archive in the directory above with the desired base name
+    base_name = os.path.splitext(zip_path)[0]
+    shutil.make_archive(base_name, 'zip', os.path.dirname(folder_path), os.path.basename(folder_path))
+    
+    # shutil creates a zip with the folder name as the root directory inside the zip.
+    # Since our folder is "xidown_pkg_temp", let's rename the folder temporarily to "xidown" before zipping
+    pass # Re-implemented below for clarity
+
+def safe_zip_directory(folder_path, zip_path):
+    parent_dir = os.path.dirname(folder_path)
+    temp_rename = os.path.join(parent_dir, "xidown")
+    
+    # Rename folder to 'xidown' so the zip structure has 'xidown/' at the root
+    if os.path.exists(temp_rename):
+        shutil.rmtree(temp_rename)
+    os.rename(folder_path, temp_rename)
+    
+    base_name = os.path.splitext(zip_path)[0]
+    shutil.make_archive(base_name, 'zip', parent_dir, "xidown")
+    
+    # Rename it back so cleanup doesn't fail
+    os.rename(temp_rename, folder_path)
 
 if __name__ == "__main__":
     run_build()

@@ -8,10 +8,11 @@ xidown is a powerful, cross-platform GUI-based video and audio downloader built 
 
 ## What's New
 
-- **Nuitka Compiled:** Switched from PyInstaller to Nuitka native compiler, producing real C-compiled binaries that significantly reduce false positive antivirus detections.
-- **Square & Minimal Scrollbars:** Standardized all scrollbars across the application to be fully square and thin, delivering a consistent flat aesthetic.
-- **Perfect Spacing & Layout Symmetry:** Standardized the spacing between all primary button groups and refined card margins to ensure perfect alignment.
-- **Symmetric Notes Interface:** Perfectly aligned the Note Editor's delete button with the right edge of the text box.
+- **Zero Antivirus Warnings:** Recompiled natively with Nuitka to completely eliminate false positive virus detections (like Wacatac) and improve performance.
+- **Setup Wizard Installer:** Replaced manual zip extraction with a professional, easy-to-use Windows Installer (`setup.exe`).
+- **Smart Portable Mode:** Download the `.zip` version and run it directly from a USB drive! It automatically detects portable mode and saves all data locally without touching the host PC.
+- **Organized Downloads:** Automatically stores all downloads, caches, and history cleanly inside your OS's native `Videos/xidown` folder.
+- **Premium Aesthetics:** Features perfect layout symmetry, flat square scrollbars, and tactile CustomTkinter interfaces.
 
 ---
 
@@ -41,15 +42,15 @@ xidown is a powerful, cross-platform GUI-based video and audio downloader built 
 
 ### Option 1: Standalone Release (Recommended)
 Download the pre-compiled package for your OS from the [Releases](https://github.com/indravoyager/xidown/releases) page.
-1. Download and extract the `.zip` file.
+1. Download the release for your platform.
 2. Run the application:
-   - **Windows:** Double-click `xidown.exe` inside the extracted folder. A desktop shortcut with the custom xidown icon will be automatically created on the first run!
-   - **Linux:** Open a terminal in the extracted folder, make it executable, and run:
+   - **Windows:** Download the `-setup.exe` installer for an automated, User-Level installation (no admin rights needed), or grab the `-portable.zip` version to run it directly from a USB drive.
+   - **Linux:** Download the `.zip`, extract it, open a terminal in the folder, make it executable, and run:
      ```bash
      chmod +x xidown
      ./xidown
      ```
-   - **macOS:** Simply double-click **`xidown.app`** inside the extracted folder (or run `open xidown.app` in your terminal).
+   - **macOS:** Download the `.zip`, extract it, and simply double-click **`xidown.app`** (or run `open xidown.app` in your terminal).
 
 ### Option 2: Run from Source (For Developers)
 1. **Clone the repo:**
@@ -111,7 +112,6 @@ To catch download links directly from your browser:
 xidown/
 ├── assets/              # Icons and image resources
 ├── bin/                 # Auto-downloaded yt-dlp and ffmpeg executables
-├── data/                # Database, caches, and configuration memory
 ├── xidown/              # Core Python package
 │   ├── app.py           # Main application entry point & Flask Server
 │   ├── core/            # Download logic, scanning algorithms, and system utilities

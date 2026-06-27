@@ -31,10 +31,14 @@ else:
     package_dir = os.path.dirname(current_dir)               # .../xidown (Package)
     BASE_DIR = os.path.dirname(package_dir)                  # .../xidown (Project Root)
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(os.path.expanduser("~"), "Videos", "xidown")
 THUMB_DIR = os.path.join(DATA_DIR, "thumbs")
 if not os.path.exists(THUMB_DIR):
     os.makedirs(THUMB_DIR)
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetFileAttributesW(str(THUMB_DIR), 2)
+    except: pass
 
 # UTILS: GHOST CLASS & MENU
 class RightClickMenu(ctk.CTkToplevel):

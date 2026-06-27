@@ -16,7 +16,7 @@ else:
     # 3. Navigate back to Root (xidown/)
     BASE_DIR = os.path.dirname(package_dir)
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(os.path.expanduser("~"), "Videos", "xidown")
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
