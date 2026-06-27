@@ -113,23 +113,32 @@ def package_release(project_root):
     
     print(f"[Build] Packaging application for {os_name} ({arch})...")
     
-    # Nuitka outputs to dist/app.dist/ for standalone mode
-    # The folder name is based on the entry point filename: app.py -> app.dist
-    nuitka_output = os.path.join(dist_dir, "app.dist")
+    # Nuitka outputs to dist/app.dist/ for standalone mode, but on macOS with --macos-create-app-bundle
+    # it creates an .app bundle and might leave app.dist empty.
+    nuitka_output = None
     
-    # Fallback: check other possible output names
-    if not os.path.exists(nuitka_output):
-        # On macOS with app bundle, it might just be .app
-        if os_name == "macos" and os.path.exists(os.path.join(dist_dir, "xidown.app")):
-            nuitka_output = os.path.join(dist_dir, "xidown.app")
+    if os_name == "macos":
+        # Prefer the .app bundle on macOS
+        for app_name in ["xidown.app", "app.app"]:
+            possible_app = os.path.join(dist_dir, app_name)
+            if os.path.exists(possible_app):
+                nuitka_output = possible_app
+                break
+                
+    if not nuitka_output:
+        # Fallback to .dist folders
+        std_dist = os.path.join(dist_dir, "app.dist")
+        if os.path.exists(std_dist) and os.listdir(std_dist): # Must not be empty
+            nuitka_output = std_dist
         else:
             for item in os.listdir(dist_dir):
                 if (item.endswith(".dist") or item.endswith(".app")) and os.path.isdir(os.path.join(dist_dir, item)):
-                    nuitka_output = os.path.join(dist_dir, item)
-                    break
+                    if os.listdir(os.path.join(dist_dir, item)): # Check it's not empty
+                        nuitka_output = os.path.join(dist_dir, item)
+                        break
     
-    if not os.path.exists(nuitka_output):
-        print(f"[Build] Error: Nuitka output directory not found. Expected: {nuitka_output}")
+    if not nuitka_output or not os.path.exists(nuitka_output):
+        print(f"[Build] Error: Nuitka valid output directory not found.")
         print(f"[Build] Contents of dist/: {os.listdir(dist_dir) if os.path.exists(dist_dir) else 'NOT FOUND'}")
         sys.exit(1)
     
@@ -147,7 +156,7 @@ def package_release(project_root):
     # 1. Copy the compiled output into our temporary release folder
     if os_name == "macos" and nuitka_output.endswith(".app"):
         # If Nuitka output is directly the .app bundle
-        shutil.copytree(nuitka_output, os.path.join(app_folder_path, "xidown.app"))
+        shutil.copytree(nuitka_output, os.path.join(app_folder_path, "xidown.app"), symlinks=True)
         print(f"[Build] Copied {nuitka_output} bundle into release folder.")
     else:
         # For Windows/Linux or if output is a .dist folder, copy all contents
@@ -155,9 +164,9 @@ def package_release(project_root):
             s = os.path.join(nuitka_output, item)
             d = os.path.join(app_folder_path, item)
             if os.path.isdir(s):
-                shutil.copytree(s, d)
+                shutil.copytree(s, d, symlinks=True)
             else:
-                shutil.copy2(s, d)
+                shutil.copy2(s, d, follow_symlinks=False)
         print("[Build] Copied all compiled files and folders into release folder.")
             
     # 2. Copy README.md into the release folder before zipping
