@@ -56,9 +56,6 @@ def run_build():
         icon_path = os.path.join(assets_dir, "favicon.ico")
         if os.path.exists(icon_path):
             cmd.append(f"--macos-app-icon={icon_path}")
-    else:
-        # Linux — disable console as well
-        cmd.append("--disable-console")
 
     # Entry point
     entry_point = os.path.join(project_root, "xidown", "app.py")
