@@ -15,9 +15,9 @@ bin/
 
 # Environments
 .env
-.venv
+.venv*/
 env/
-venv/
+venv*/
 ENV/
 env.bak/
 venv.bak/
@@ -46,3 +46,6 @@ releases/
 *.dist/
 *.onefile-build/
 *.iss
+
+# xidown data
+data/
