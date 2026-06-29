@@ -35,22 +35,72 @@ EXTRA_FILES = {
     ROOT_DIR / "LICENSE"
 }
 
-def install_dependencies():
-    # Ensure nuitka is installed
+def check_dependencies(deps: Iterable[str]) -> List[str]:
+    deps = set(deps)
+    if not deps: return []
+
+    cmd = [EXEC_PATH, "-m", "pip", "freeze"]
+    available_deps = set()
+
     try:
+        with subprocess.Popen(
+            cmd,
+            bufsize=1,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+        ) as proc:
+            assert proc.stdout is not None
+
+            for line in proc.stdout:
+                package = line.partition("==")[0].strip()
+                if package in deps:
+                    print(f"[Build] Dependency installed: {package}")
+                    available_deps.add(package)
+
+            returncode = proc.wait()
+
+        if returncode != 0:
+            print(
+                f"[Build] Warning: pip freeze exited with code {returncode}",
+                file=sys.stderr,
+            )
+            return []
+
+    except (OSError, FileNotFoundError) as exc:
+        print(
+            f"[Build] Warning: Failed to check Python dependencies: {exc}",
+            file=sys.stderr,
+        )
+        return []  # no fatal error, just pass an empty list
+
+    return list(available_deps)
+
+def install_dependencies(deps: Iterable[str]):
+    deps = set(deps)
+    try:
+        # Ensure nuitka is installed
         from nuitka.Version import getNuitkaVersion  # pyright: ignore[reportMissingImports]
         print(f"[Build] Nuitka version: {getNuitkaVersion()}")
     except ImportError:
         print("[Build] Nuitka not found. Installing via pip...", file=sys.stderr)
         try:
-            subprocess.check_call([EXEC_PATH, "-m", "pip", "install", *REQUIRED_DEPS])
+            subprocess.check_call([EXEC_PATH, "-m", "pip", "install", *deps])
         except subprocess.CalledProcessError as e:
-            print(f"[Build] Failed to install {', '.join(REQUIRED_DEPS)}: {e}", file=sys.stderr)
+            print(f"[Build] Failed to install {', '.join(deps)}: {e}", file=sys.stderr)
             sys.exit(e.returncode)
 
 def run_build():
-    # Install dependencies first
-    install_dependencies()
+    # Check dependencies first
+    available_deps = check_dependencies(REQUIRED_DEPS)
+    missing_deps = REQUIRED_DEPS - set(available_deps)
+    if missing_deps:
+        # Install missing dependencies
+        missing_deps_sorted = sorted(missing_deps)
+        print(f"[Build] Missing dependencies: {', '.join(missing_deps_sorted)}")
+        install_dependencies(missing_deps_sorted)
 
     # Determine paths
     ctk_dir: Path
