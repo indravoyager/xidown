@@ -8,23 +8,27 @@ from typing import Iterable, List, Union
 
 try:
     from xidown.core.version import APP_NAME, APP_VER
-    APP_VER.replace("v.", "v")  # v.X.X -> vX.X
+    from xidown.core.constants import FAVICON_PATH
+    APP_VER = APP_VER.replace("v.", "v")  # v.X.X -> vX.X
 except ImportError:
     APP_NAME = "xidown"
     APP_VER = "v0.0.0-null"  # v0 with '-null' suffix
+    FAVICON_PATH = None
 
 # Base directories
 ROOT_DIR = Path(__file__).absolute().parent
 ASSETS_DIR = ROOT_DIR / "assets"
 DIST_DIR = ROOT_DIR / "dist"
 RELEASES_DIR = ROOT_DIR / "releases"
-ICON_PATH = ASSETS_DIR / "favicon.ico"
+ICON_PATH = ROOT_DIR / FAVICON_PATH \
+    if FAVICON_PATH                 \
+    else ASSETS_DIR / "favicon.ico"
 
 # These are the important part for this app builder
 # Only change if and only if needed or project migration
 APP_ENTRY_POINT = ROOT_DIR / APP_NAME / "app.py"
 
-EXEC_PATH = Path(sys.executable).absolute()
+EXEC_PATH = sys.executable
 REQUIRED_DEPS = {
     "nuitka",
     "ordered-set"
@@ -34,6 +38,20 @@ EXTRA_FILES = {
     ROOT_DIR / "README.md",
     ROOT_DIR / "LICENSE"
 }
+
+def normalize_arch(machine: str) -> str:
+    """
+    Normalize `platform.machine()` value to one of 'x64', 'x86', or 'arm64';
+    based on current system.
+    """
+    machine = machine.lower()
+    if machine in ["amd64", "x86_64"]:
+        return "x64"
+    elif machine in ["i386", "i686", "x86"]:
+        return "x86"
+    elif machine.startswith(("arm", "aarch")):
+        return "arm64"
+    return machine
 
 def check_dependencies(deps: Iterable[str]) -> List[str]:
     deps = set(deps)
@@ -116,7 +134,7 @@ def run_build():
         sys.exit(1)  # Fatal exit
 
     # Build command using Nuitka
-    cmd = [
+    cmd: List[str] = [
         EXEC_PATH, "-m", "nuitka",
         "--standalone",
         "--enable-plugin=tk-inter",
@@ -140,19 +158,19 @@ def run_build():
     if curr_system == "windows":
         cmd.extend([
             "--windows-console-mode=disable",
-            f"--windows-icon-from-ico={ICON_PATH}" if is_favicon_exist else None
+            f"--windows-icon-from-ico={ICON_PATH}" if is_favicon_exist else ''
         ])
     elif curr_system == "darwin":
         cmd.extend([
             "--macos-create-app-bundle",
-            f"--macos-app-icon={ICON_PATH}" if is_favicon_exist else None
+            f"--macos-app-icon={ICON_PATH}" if is_favicon_exist else ''
         ])
 
     # Filter from None values
-    cmd = [c for c in cmd if c is not None]
+    cmd = [c for c in cmd if c.strip() != '']
 
     # Entry point
-    cmd.append(APP_ENTRY_POINT)
+    cmd.append(str(APP_ENTRY_POINT))
 
     # Run Nuitka
     print(f"[Build] Running Nuitka compilation command:\n{' '.join(cmd)}")
@@ -171,23 +189,14 @@ def package_release(project_root: Union[str, Path]):
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
     DIST_DIR.mkdir(parents=True, exist_ok=True)
 
-    os_system = platform.system().lower()
-    raw_arch = platform.machine().lower()
-
     # Identify OS and Architecture
+    os_system = platform.system().lower()
+    arch = normalize_arch(platform.machine())
+
     if os_system == "darwin":
         os_name = "macos"
     else:
         os_name = os_system
-
-    if raw_arch in ["amd64", "x86_64"]:
-        arch = "x64"
-    elif raw_arch in ["i386", "i686", "x86"]:
-        arch = "x86"
-    elif raw_arch in ["arm", "aarch"]:
-        arch = "arm64"
-    else:
-        arch = raw_arch
 
     # Naming convention: xidown-[version]-[os]-[arch][-portable].zip
     # We add "-portable" for Windows to distinguish it from the setup.exe
@@ -208,25 +217,25 @@ def package_release(project_root: Union[str, Path]):
         # Prefer the .app bundle on macOS
         for app_name in [f"{APP_NAME}.app", "app.app"]:
             possible_app = DIST_DIR / app_name
-            if possible_app.exists():
+            if possible_app.is_dir():
                 nuitka_output = possible_app
                 break
 
-    dist_dir_items = [x for x in DIST_DIR.iterdir()]
+    dist_dir_items = list(DIST_DIR.iterdir())
     if not nuitka_output:
         # Fallback to .dist folders
         std_dist = DIST_DIR / "app.dist"
-        if std_dist.exists() and os.listdir(std_dist): # Must not be empty
+        if std_dist.is_dir() and any(std_dist.iterdir()): # Must not be empty
             nuitka_output = std_dist
         else:
             for item in dist_dir_items:
                 # Do not need to resolve the paths, see ROOT_DIR
                 if (item.name.endswith(".dist") or item.name.endswith(".app")) and item.is_dir():
-                    if not os.listdir(item): continue
+                    if not any(item.iterdir()): continue
                     nuitka_output = item
                     break
 
-    if not nuitka_output or not nuitka_output.exists():
+    if not nuitka_output or not nuitka_output.is_dir():
         print(
             f"[Build] Error: Nuitka valid output directory not found.\n" +
             f"[Build] Contents of 'dist/': {dist_dir_items if dist_dir_items else 'NOT FOUND'}",
@@ -240,10 +249,12 @@ def package_release(project_root: Union[str, Path]):
     app_folder_path = DIST_DIR / f"{APP_NAME}_pkg_temp"
     app_bundle_path = app_folder_path / f"{APP_NAME}.app"  # For MacOS
     if app_folder_path.is_dir():
-        try:
-            shutil.rmtree(app_folder_path)
-        except Exception:
-            pass
+        try: shutil.rmtree(app_folder_path)
+        except Exception as e:
+            print(
+                f"[Build] Warning: Failed to remove old temporary directory: {e}",
+                file=sys.stderr
+            )
     app_folder_path.mkdir(exist_ok=True)
 
     # Copy the compiled output into our temporary release folder
@@ -297,21 +308,28 @@ def package_release(project_root: Union[str, Path]):
         # Create portable.txt ONLY for the zip package (portable version)
         portable_txt_path = app_folder_path / "portable.txt"
         try:
-            with open(portable_txt_path, "w") as f:
+            with open(portable_txt_path, "w", encoding="utf-8") as f:
                 f.write("This file tells xidown to run in portable mode and save data in this folder.")
-        except:
+        except OSError:
             print("[Build] Warning: Failed to create portable identifier file", file=sys.stderr)
             pass
 
-        safe_zip_directory(app_folder_path, zip_path)
+        created_zip = safe_zip_directory(app_folder_path, zip_path)
+        created_zip_path = Path(created_zip)
+        if not created_zip_path.is_file():
+            raise FileNotFoundError(f"[Build] Expected archive not found: {created_zip}")
+
+        # If the created archive file not inside releases folder, move it
+        if RELEASES_DIR not in created_zip_path.parents:
+            shutil.move(created_zip_path, RELEASES_DIR / created_zip_path.name)
 
         # Remove portable.txt so the Inno Setup installer (which runs next) doesn't include it
         if portable_txt_path.is_file():
-            try: os.remove(portable_txt_path)
+            try: portable_txt_path.unlink()
             except: pass
 
-        print(f"[Build] Packaged successfully to: {zip_path}")
-        print(f"[Build] Package size: {os.path.getsize(zip_path) / (1024*1024):.2f} MB")
+        print(f"[Build] Packaged successfully to: {created_zip}")
+        print(f"[Build] Package size: {created_zip_path.stat().st_size / (1024*1024):.2f} MB")
 
         # Build Inno Setup installer if on Windows
         if os_name == "windows":
@@ -402,22 +420,30 @@ def zip_directory(folder_path: Union[str, Path], zip_path: Union[str, Path]):
     # Since our folder is "xidown_pkg_temp", let's rename the folder temporarily to "xidown" before zipping
     pass # Re-implemented below for clarity
 
-def safe_zip_directory(folder_path: Union[str, Path], zip_path: Union[str, Path]):
-    folder_path = Path(folder_path)
-    zip_path = Path(zip_path)
-    parent_dir = folder_path.parent
-    temp_rename = parent_dir / APP_NAME
+def safe_zip_directory(folder_path: Union[str, Path], zip_path: Union[str, Path]) -> str:
+    folder_path = Path(folder_path).resolve()
+    zip_path = Path(zip_path).resolve()
 
-    # Rename folder to 'xidown' so the zip structure has 'xidown/' at the root
-    if temp_rename.is_dir():
-        shutil.rmtree(temp_rename)
-    os.rename(folder_path, temp_rename)
+    if not folder_path.is_dir():
+        raise NotADirectoryError(folder_path)
 
-    base_name = zip_path.stem
-    shutil.make_archive(base_name, 'zip', parent_dir, temp_rename.name)
+    archive_root = folder_path.parent / APP_NAME
 
-    # Rename it back so cleanup doesn't fail
-    os.rename(temp_rename, folder_path)
+    folder_path.rename(archive_root)
+    print(f"[Build] Renamed '{folder_path}' -> '{archive_root}'")
+
+    try:
+        archive = shutil.make_archive(
+            str(zip_path.with_suffix("")),
+            "zip",
+            archive_root.parent,
+            archive_root.name,
+        )
+        print(f"[Build] Created ZIP archive: {archive}")
+        return archive
+    finally:
+        archive_root.rename(folder_path)
+        print(f"[Build] Renamed '{archive_root}' -> '{folder_path}'")
 
 if __name__ == "__main__":
     run_build()
