@@ -321,14 +321,14 @@ def package_release(project_root: Union[str, Path]):
 
         # If the created archive file not inside releases folder, move it
         if RELEASES_DIR not in created_zip_path.parents:
-            shutil.move(created_zip_path, RELEASES_DIR / created_zip_path.name)
+            created_zip_path = Path(shutil.move(created_zip_path, RELEASES_DIR / created_zip_path.name))
 
         # Remove portable.txt so the Inno Setup installer (which runs next) doesn't include it
         if portable_txt_path.is_file():
             try: portable_txt_path.unlink()
             except: pass
 
-        print(f"[Build] Packaged successfully to: {created_zip}")
+        print(f"[Build] Packaged successfully to: {created_zip_path}")
         print(f"[Build] Package size: {created_zip_path.stat().st_size / (1024*1024):.2f} MB")
 
         # Build Inno Setup installer if on Windows
@@ -359,7 +359,7 @@ AppPublisher=indravoyager
 DefaultDirName={{localappdata}}\\Programs\\{APP_NAME}
 DefaultGroupName={APP_NAME}
 OutputDir={releases_dir}
-OutputBaseFilename={APP_NAME}-v{APP_VER}-windows-{arch}-setup
+OutputBaseFilename={APP_NAME}-{APP_VER}-windows-{arch}-setup
 Compression=lzma2
 SolidCompression=yes
 SetupIconFile={app_folder_path}\\assets\\favicon.ico
@@ -380,7 +380,7 @@ Name: "{{autodesktop}}\\{APP_NAME}"; Filename: "{{app}}\\{APP_NAME}.exe"; Tasks:
 [Run]
 Filename: "{{app}}\\{APP_NAME}.exe"; Description: "{{cm:LaunchProgram,{APP_NAME}}}"; Flags: nowait postinstall skipifsilent
 """
-    iss_path = project_root / "{APP_NAME}.iss"
+    iss_path = project_root / f"{APP_NAME}.iss"
     with open(iss_path, "w", encoding="utf-8") as f:
         f.write(iss_content)
 
